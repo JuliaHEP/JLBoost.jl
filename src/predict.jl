@@ -44,13 +44,9 @@ end
 function predict!(jlt::JLBoostTree, df, res, assignbool)
 	if length(jlt.children) == 2
         tmp = getproperty(Tables.columns(df), jlt.splitfeature)
-
-        # TODO
-	    new_assignbool = assignbool .& ismissing.(tmp) .|| (tmp .<= jlt.split)
-	    predict!(jlt.children[1], df, res, new_assignbool)
-
-        new_assignbool .= assignbool .& .!(ismissing.(tmp) .|| (tmp .<= jlt.split))
-	    predict!(jlt.children[2], df, res, new_assignbool)
+        go_left = ismissing.(tmp) .|| (tmp .<= jlt.split)
+        predict!(jlt.children[1], df, res, assignbool .& go_left)
+        predict!(jlt.children[2], df, res, assignbool .& .!go_left)
     elseif length(jlt.children) == 0
 	    res[assignbool] .+= jlt.weight
     else

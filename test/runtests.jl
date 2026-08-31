@@ -15,3 +15,4 @@ end
 include("test-get_leaf_nodes.jl")
 include("test-tree-structure.jl")
 include("test-weights.jl")
+include("test-xgboost-accuracy.jl")
