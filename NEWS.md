@@ -5,7 +5,7 @@
 * Set stump leaf scores to `-G/(H+λ)` when no split is found; subsample now actually trains on the sampled rows.
 * Support per-row observation `weights`: gradients and hessians are scaled by the weights.
 * Fix `predict` for trees deeper than one split (`.`&` bound tighter than `.||`, so left-leaf rows also received a right-subtree increment). Training margins now match XGBoost to ~10⁻⁸ (Float32) under matched exact-split logistic settings.
-* Add GitHub Actions CI (Julia 1.10, 1.11, latest 1.x; Linux, macOS, Windows).
+* Add GitHub Actions tests from CascadeDecays.jl: reusable workflow, full matrix on push (Julia 1.11 and latest 1.x; Linux, macOS, Windows), Ubuntu-only on PRs.
 # v0.1.12
 Minor bug fix for jlboost
 

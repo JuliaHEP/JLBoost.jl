@@ -1,6 +1,6 @@
 # JLBoost.jl
 
-[![CI](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/ci.yml)
+[![Test](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml/badge.svg)](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml)
 
 A 100%-Julia implementation of Gradient Boosting Regression Trees (GBRT / GBDT), based on the algorithms in the XGBoost, LightGBM and CatBoost papers.
 
@@ -11,7 +11,7 @@ This repository is the [JuliaHEP](https://github.com/JuliaHEP/JLBoost.jl) fork o
 * Requires **Julia 1.10+** (tested on 1.10, 1.11, and latest 1.x).
 * Per-row observation `weights` are supported: `jlboost(df, target; weights = w)` (XGBoost `DMatrix` `weight`).
 * Training-set raw margins agree with XGBoost to ~10⁻⁸ under matched exact-split logistic settings (XGBoost Float32 vs JLBoost Float64). The 8-row stump is bit-identical.
-* GitHub Actions CI on Linux, macOS, and Windows.
+* GitHub Actions tests: Julia 1.11 and latest 1.x on Linux, macOS, and Windows (push); Ubuntu + latest 1.x on pull requests.
 
 ## Limitations for now
 * Currently, `Union{T, Missing}` feature type is not supported, but is *planned*.
