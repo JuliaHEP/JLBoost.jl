@@ -1,4 +1,4 @@
-# v0.2.0
+# v1.0.0
 * Require Julia 1.10+ so the package runs on current LTS and Julia 1.11.
 * Allow LossFunctions 1.x and CategoricalArrays 1.x; fill in missing `[compat]` entries (`Statistics`, `Serialization`).
 * Fix AbstractTrees 0.4 traits (type-based `StoredParents` / `IndexedChildren`) so `print_tree` works.
