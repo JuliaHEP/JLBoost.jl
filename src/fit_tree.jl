@@ -51,6 +51,8 @@ Parameters:
     The L2 regularization constant on leaf scores
 * gamma = 0
     The minimum loss reduction to split
+* weights = nothing
+    Optional per-row observation weights
 * colsample_bynode = 1 (NOT IMPLEMENTED YET)
     What proportion of features to sample for each node
 * colsample_bylevel = 1 (NOT IMPLEMENTED YET)
@@ -62,6 +64,7 @@ function _fit_tree!(loss, tbl, target, features, warm_start,
     stopping_criterion = max_depth_stopping_criterion(1);
     lambda = 0, gamma = 0,
     verbose = false, #colsample_bynode = 1, colsample_bylevel = 1,
+    weights = nothing,
 	kwargs...)
 
     @assert Tables.istable(tbl)
@@ -76,10 +79,18 @@ function _fit_tree!(loss, tbl, target, features, warm_start,
         features = setdiff(features, [target])
     end
 
-    # second-order leaf score: -G / (H + λ)
+    if weights !== nothing
+        @assert length(weights) == nrow(tbl)
+    end
+
+    # second-order leaf score: -G / (H + λ), using observation weights if given
     target_vec = getproperty(Tables.columns(tbl), Symbol(target))
     gs = g.(loss, target_vec, warm_start)
     hs = h.(loss, target_vec, warm_start)
+    if weights !== nothing
+        gs = gs .* weights
+        hs = hs .* weights
+    end
     H = sum(hs)
     jlt.weight = -sum(gs) / (H + lambda)
 
@@ -128,6 +139,7 @@ function _fit_tree!(loss, tbl, target, features, warm_start,
                 # if the node is the parent
                 tbl_filtered = tbl
                 warm_start_filtered = warm_start
+                weights_filtered = weights
             else
                 keeprow = keeprow_vec(tbl, leaf_node)
                 if sum(keeprow) <= 2
@@ -143,17 +155,18 @@ function _fit_tree!(loss, tbl, target, features, warm_start,
 
                 tbl_filtered = tbl[keeprow, :]
                 warm_start_filtered = warm_start[keeprow]
+                weights_filtered = weights === nothing ? nothing : weights[keeprow]
             end
 
             # compute the gain for all splits for all features
             split_with_best_gain =
                 find_best_split(loss, tbl_filtered, features[1], target, warm_start_filtered,
-                                lambda, gamma; verbose=verbose, kwargs...)
+                                lambda, gamma; verbose=verbose, weights=weights_filtered, kwargs...)
 
             for feature in Iterators.drop(features, 1)
                 feature_split =
                     find_best_split(loss, tbl_filtered, feature, target, warm_start_filtered,
-                                    lambda, gamma; verbose=verbose, kwargs...)
+                                    lambda, gamma; verbose=verbose, weights=weights_filtered, kwargs...)
                 if feature_split.gain > split_with_best_gain.gain
                     split_with_best_gain = feature_split
                 end

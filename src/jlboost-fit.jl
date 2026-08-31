@@ -25,8 +25,10 @@ Fit a tree boosting model with a DataFrame, df, and target symbol and allowed fe
 * verbose: Print more information
 * colsample_bytree: (0-1] The proportion of feature column to sample for each tree.
 * min_child_weight: Minimum sum of hessians in a child node before a split can occur. The
-    hessian is the 2nd derivative of the loss function, which happens to be 1 for squares
-    loss.
+    hessian is the (possibly observation-weighted) 2nd derivative of the loss function,
+    which happens to be 1 for squares loss.
+* weights: Optional per-row observation weights. Gradients and hessians are multiplied by
+    these weights. Defaults to equal weights.
 * colsample_bylevel: Not yet implemented
 * colsample_bynode: Not yet implemented
 * monotone_contraints: Not yet implemented
@@ -93,7 +95,7 @@ function jlboost(df, target, features, warm_start::AbstractVector,
     col_sampling_bytree_strategy::Function,
     tree_growth::Function,
     stopping_criterion::Function;
-	nrounds = 1, eta = 1.0, verbose = false, kwargs...)
+	nrounds = 1, eta = 1.0, verbose = false, weights = nothing, kwargs...)
     # eta = 1, lambda = 0, gamma = 0,  min_child_weight = 1, colsample_bylevel = 1, colsample_bynode = 1,
 	#, ,  colsample_bynode = 1,
 
@@ -104,6 +106,9 @@ function jlboost(df, target, features, warm_start::AbstractVector,
     features = Symbol.(features)
 
     n = nrow(df)
+    if weights !== nothing
+        @assert length(weights) == n
+    end
     if length(warm_start) != n
         throw(ArgumentError("warm_start length ($(length(warm_start))) must equal number of rows ($n)"))
     end
@@ -128,6 +133,7 @@ function jlboost(df, target, features, warm_start::AbstractVector,
         if idx == 1:nrow(dfc)
             dfs = dfc
             ws = nround == 1 ? warm_start : predict(res_jlt[1:nround-1], dfc)
+            wts = weights
         else
             dfs = dfc[idx, :]
             if nround == 1
@@ -135,11 +141,12 @@ function jlboost(df, target, features, warm_start::AbstractVector,
             else
                 ws = predict(res_jlt[1:nround-1], dfs)
             end
+            wts = weights === nothing ? nothing : weights[idx]
         end
 
         new_jlt = _fit_tree!(loss, dfs, target, features_sample, ws, JLBoostTree(0.0),
                              tree_growth,
-                             stopping_criterion; verbose=verbose, kwargs...);
+                             stopping_criterion; verbose=verbose, weights=wts, kwargs...);
 
         # added a new round of tree
         push!(res_jlt, eta*deepcopy(new_jlt))

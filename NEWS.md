@@ -3,6 +3,7 @@
 * Allow LossFunctions 1.x and CategoricalArrays 1.x; fill in missing `[compat]` entries (`Statistics`, `Serialization`).
 * Fix AbstractTrees 0.4 traits (type-based `StoredParents` / `IndexedChildren`) so `print_tree` works.
 * Set stump leaf scores to `-G/(H+λ)` when no split is found; subsample now actually trains on the sampled rows.
+* Support per-row observation `weights`: gradients and hessians are scaled by the weights.
 
 # v0.1.12
 Minor bug fix for jlboost
