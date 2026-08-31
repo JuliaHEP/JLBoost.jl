@@ -6,6 +6,8 @@
 * Support per-row observation `weights`: gradients and hessians are scaled by the weights.
 * Fix `predict` for trees deeper than one split (`.`&` bound tighter than `.||`, so left-leaf rows also received a right-subtree increment). Training margins now match XGBoost to ~10⁻⁸ (Float32) under matched exact-split logistic settings.
 * Add GitHub Actions tests from CascadeDecays.jl: reusable workflow, full matrix on push (Julia 1.11 and latest 1.x; Linux, macOS, Windows), Ubuntu-only on PRs.
+* Rewrite the README as a short API guide; move longer tutorials to `docs/` (Quarto site planned).
+* Drop the claim of MLJ support: `JLBoostMLJ.jl` is archived and incompatible with this fork.
 # v0.1.12
 Minor bug fix for jlboost
 
