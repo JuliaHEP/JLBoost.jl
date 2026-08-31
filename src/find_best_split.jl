@@ -15,7 +15,7 @@ Taylor-series expexpansion.
 Does not assume that Feature, target, and warmstart are sorted and will sort them for you.
 """
 
-function find_best_split(loss, df, feature::Symbol, target::Symbol, warmstart::AbstractVector, lambda, gamma; verbose = false, kwargs...)
+function find_best_split(loss, df, feature::Symbol, target::Symbol, warmstart::AbstractVector, lambda, gamma; verbose = false, weights = nothing, kwargs...)
 	 @assert Tables.istable(df)
 
 	 dfc = Tables.columns(df)
@@ -29,7 +29,7 @@ function find_best_split(loss, df, feature::Symbol, target::Symbol, warmstart::A
 
 	 target_vec = getproperty(dfc, target);
 
-	 split_res = find_best_split(loss, x, target_vec, warmstart, lambda, gamma; verbose = verbose, kwargs...)
+	 split_res = find_best_split(loss, x, target_vec, warmstart, lambda, gamma; verbose = verbose, weights = weights, kwargs...)
 	 (feature = feature, split_res...)
 end
 
@@ -41,15 +41,17 @@ Find the best (binary) split point by optimizing ∑ loss(warmstart + δx, targe
 
 Does not assume that Feature, target, and warmstart are sorted and will sort them for you.
 """
-function find_best_split(loss, features::AbstractVector, target::AbstractVector, warmstart::AbstractVector, lambda::Number, gamma::Number; kwargs...)
+function find_best_split(loss, features::AbstractVector, target::AbstractVector, warmstart::AbstractVector, lambda::Number, gamma::Number; weights = nothing, kwargs...)
 	@assert length(features) == length(target)
 	@assert length(features) == length(warmstart)
+	weights === nothing || @assert length(weights) == length(features)
 
     if issorted(features)
-        res = _find_best_split(loss, features, target, warmstart, lambda, gamma; kwargs...)
+        res = _find_best_split(loss, features, target, warmstart, lambda, gamma; weights = weights, kwargs...)
     else
         s = fsortperm(features)
-        res = _find_best_split(loss, @view(features[s]), @view(target[s]), @view(warmstart[s]), lambda, gamma; kwargs...)
+        w = weights === nothing ? nothing : @view(weights[s])
+        res = _find_best_split(loss, @view(features[s]), @view(target[s]), @view(warmstart[s]), lambda, gamma; weights = w, kwargs...)
     end
 end
 
@@ -71,10 +73,11 @@ function _find_best_split(loss::LogitLogLoss, feature::AbstractVector, target::S
 end
 
 
-function _find_best_split(loss, feature, target, warmstart, lambda::Number, gamma::Number; min_child_weight = 1, verbose = false)
+function _find_best_split(loss, feature, target, warmstart, lambda::Number, gamma::Number; min_child_weight = 1, verbose = false, weights = nothing)
     @assert length(feature) >= 2
 	@assert length(target) == length(feature)
 	@assert length(warmstart) == length(feature)
+	weights === nothing || @assert length(weights) == length(feature)
 
 
     # if the feature vector has missings
@@ -93,13 +96,23 @@ function _find_best_split(loss, feature, target, warmstart, lambda::Number, gamm
             feature = @view feature[1:non_missing_ends]
             target = @view target[1:non_missing_ends]
             warmstart = @view warmstart[1:non_missing_ends]
+            if weights !== nothing
+                weights = @view weights[1:non_missing_ends]
+            end
         end
     end
 
+    # Observation weights scale both gradient and hessian.
     # TODO maybe use some kind of argmax here
     # TODO can reduce allocations here by skipping the broadcasting .
-	cg = cumsum(g.(loss, target, warmstart))
-    ch = cumsum(h.(loss, target, warmstart))
+    gs = g.(loss, target, warmstart)
+    hs = h.(loss, target, warmstart)
+    if weights !== nothing
+        gs = gs .* weights
+        hs = hs .* weights
+    end
+	cg = cumsum(gs)
+    ch = cumsum(hs)
 
     max_cg = cg[end]
     max_ch = ch[end]
