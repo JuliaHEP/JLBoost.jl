@@ -2,388 +2,135 @@
 
 [![Test](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml/badge.svg)](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml)
 
-A 100%-Julia implementation of Gradient Boosting Regression Trees (GBRT / GBDT), based on the algorithms in the XGBoost, LightGBM and CatBoost papers.
+A 100%-Julia implementation of gradient boosting regression trees (GBRT / GBDT).
 
-This repository is the [JuliaHEP](https://github.com/JuliaHEP/JLBoost.jl) fork of the original [`xiaodaigh/JLBoost.jl`](https://github.com/xiaodaigh/JLBoost.jl).
+This is the [JuliaHEP](https://github.com/JuliaHEP/JLBoost.jl) fork of [`xiaodaigh/JLBoost.jl`](https://github.com/xiaodaigh/JLBoost.jl). It requires **Julia 1.10+**.
+
+Longer tutorials live in [`docs/`](docs/). A [Quarto](https://quarto.org) documentation site from that folder is planned.
+
+## Install
+
+```julia
+using Pkg
+Pkg.add(url="https://github.com/JuliaHEP/JLBoost.jl")
+```
+
+## Fit and predict
+
+`jlboost` fits on any [Tables.jl](https://github.com/JuliaData/Tables.jl) table. The default loss is logistic (`LogitLogLoss`) for a binary target. Features default to every column except the target.
+
+```julia
+using JLBoost, DataFrames
+
+df = DataFrame(
+    x = Float64[1, 1, 1, 1, 0, 0, 0, 0],
+    y = [1, 1, 1, 1, 0, 0, 0, 0],
+)
+
+model = jlboost(df, :y; nrounds = 2, max_depth = 2)
+ŷ = predict(model, df)          # raw margin
+ŷ = model(df)                   # same: the model is callable
+```
+
+A fitted `JLBoostTreeModel` holds the trees, the loss, and the target name:
+
+```julia
+trees(model)
+model.loss      # LogitLogLoss()
+model.target    # :y
+```
+
+Control boosting with keywords on `jlboost`:
+
+```julia
+jlboost(df, :y;
+    nrounds = 10,
+    max_depth = 3,          # depth-wise growth (set `0` if you use `max_leaves`)
+    max_leaves = 0,         # leaf-wise / best-first growth when > 0
+    eta = 0.3,              # shrinkage; kept on each tree, not baked into leaves
+    lambda = 0,             # L2 on leaf scores
+    gamma = 0,              # minimum gain to split
+    subsample = 1,
+    min_child_weight = 1,
+    weights = nothing,      # optional per-row observation weights
+)
+```
+
+Score several models by concatenating them:
+
+```julia
+predict(vcat(model, model), df)
+```
+
+## Observation weights
+
+Pass a vector the same length as the table. Gradients and hessians are multiplied by `w_i`.
+
+```julia
+w = fill(2.0, nrow(df))
+model_w = jlboost(df, :y; weights = w)
+```
+
+## Inspect and reweight trees
+
+Leaf scores live in `tree.weight`. Shrinkage is a wrapper (`WeightedJLBoostTree.eta`), so you can rescale a tree after fitting:
+
+```julia
+t = trees(model)[1]
+t.eta
+0.3 * t                         # new tree with 30% of the original eta
+feature_importance(model, df)   # Quality_Gain, Coverage, Frequency
+```
+
+## Regression
+
+Swap in a [LossFunctions.jl](https://github.com/JuliaML/LossFunctions.jl) loss. Least squares is `L2DistLoss()`:
+
+```julia
+using LossFunctions: L2DistLoss
+
+df = DataFrame(x = rand(100) .* 100)
+df.y = 2 .* df.x .+ rand(100)
+
+jlboost(df, :y, [:x], fill(0.0, nrow(df)), L2DistLoss(); max_depth = 2)
+```
+
+## Save and load
+
+```julia
+JLBoost.save(model, "model.jlb")
+JLBoost.load("model.jlb")
+```
+
+## Tables.jl
+
+Any column-accessible table works. For a custom type, define efficient `nrow`, `ncol`, and `view` if the generic methods are too slow.
+
+## Documentation
+
+| | |
+| --- | --- |
+| [docs/](docs/) | Tutorials (Quarto site planned) |
+| [Classification](docs/classification.md) | Binary logistic example, AUC / gini, leaf-wise growth |
+| [Out of core](docs/out-of-core.md) | Fit from a `JDF.JDFFile` without loading every column |
+| [Give Me Some Credit](tutorial/give-me-some-credit/) | Larger example on disk |
 
 ## Fork ahead
 
-* Requires **Julia 1.10+** (tested on 1.10, 1.11, and latest 1.x).
-* Per-row observation `weights` are supported: `jlboost(df, target; weights = w)` (XGBoost `DMatrix` `weight`).
-* Training-set raw margins agree with XGBoost to ~10⁻⁸ under matched exact-split logistic settings (XGBoost Float32 vs JLBoost Float64). The 8-row stump is bit-identical.
+* Julia 1.10+ (tested on 1.10, 1.11, and latest 1.x).
+* Per-row observation `weights`: `jlboost(df, target; weights = w)` (XGBoost `DMatrix` `weight`).
+* Training-set raw margins agree with XGBoost to ~10⁻⁸ under matched exact-split logistic settings. The 8-row stump is bit-identical.
 * GitHub Actions tests: Julia 1.11 and latest 1.x on Linux, macOS, and Windows (push); Ubuntu + latest 1.x on pull requests.
 
-## Limitations for now
-* Currently, `Union{T, Missing}` feature type is not supported, but is *planned*.
-* Currently, only the single-valued models are supported. Multivariate-target models support is *planned*.
-* Currently, only the numeric and boolean features are supported. Categorical support is *planned*.
+## Limitations
 
-## Objectives
-* A full-featured & batteries included Gradient Boosting Regression Tree library
-* Play nice with the Julia ecosystem e.g. Tables.jl, DataFrames.jl and CategoricalArrays.jl
-* 100%-Julia
-* Fit models on large data
-* Easy to manipulate the tree after fitting; play with tree pruning and adjustments
-* "Easy" to deploy
-* Completely [hackable](https://docs.google.com/presentation/d/1xjhi8AbOpBzCxoLy9kGR_NuBqo0O2EWpqQFfXCAjCGY/edit?usp=sharing)
+* `Union{T, Missing}` features are not supported yet.
+* Only a single target column (no multivariate models yet).
+* Numeric and boolean features only (no categoricals yet).
 
-## Quick-start
-
-### Fit model on `DataFrame`
-
-#### Binary Classification
-We fit the model by predicting one of the iris Species. To fit a model on a `DataFrame` you need to specify the column and the features default to all columns other than the target.
-
-```julia
-using JLBoost, RDatasets
-iris = dataset("datasets", "iris");
-
-iris[!, :is_setosa] = iris[!, :Species] .== "setosa";
-target = :is_setosa;
-
-features = setdiff(names(iris), ["Species", "is_setosa"]);
-
-# fit one tree
-# ?jlboost for more details
-xgtreemodel = jlboost(iris, target)
-```
-
-```
-JLBoost.JLBoostTrees.JLBoostTreeModel(JLBoost.JLBoostTrees.AbstractJLBoostT
-ree[eta = 1.0 (tree weight)
-
-   -- PetalLength <= 1.9
-     ---- weight = 2.0
-
-   -- PetalLength > 1.9
-     ---- weight = -2.0
-], JLBoost.LogitLogLoss(), :is_setosa)
-```
-
-
-
-
-
-The returned model contains a vector of trees and the loss function and target
-
-```julia
-typeof(trees(xgtreemodel))
-```
-
-```
-Vector{AbstractJLBoostTree} (alias for Array{JLBoost.JLBoostTrees.AbstractJ
-LBoostTree, 1})
-```
-
-
-
-```julia
-typeof(xgtreemodel.loss)
-```
-
-```
-JLBoost.LogitLogLoss
-```
-
-
-
-```julia
-typeof(xgtreemodel.target)
-```
-
-```
-Symbol
-```
-
-
-
-
-
-You can control parameters like  `max_depth` and `nrounds`
-```julia
-xgtreemodel2 = jlboost(iris, target; nrounds = 2, max_depth = 2)
-```
-
-```
-JLBoost.JLBoostTrees.JLBoostTreeModel(JLBoost.JLBoostTrees.AbstractJLBoostT
-ree[eta = 1.0 (tree weight)
-
-   -- PetalLength <= 1.9
-     ---- weight = 2.0
-
-   -- PetalLength > 1.9
-     ---- weight = -2.0
-, eta = 1.0 (tree weight)
-
-   -- PetalLength <= 1.9
-     -- SepalLength <= 4.8
-       ---- weight = 1.1353352832366135
-
-     -- SepalLength > 4.8
-       ---- weight = 1.1353352832366155
-
-   -- PetalLength > 1.9
-     ---- weight = -1.135335283236615
-], JLBoost.LogitLogLoss(), :is_setosa)
-```
-
-
-
-
-
-To grow the tree a leaf-wise (AKA best-first or or in XGBoost terminology "lossguided") strategy,
-you see set the `max_leaves` parameters e.g.
-```julia
-xgtreemodel3 = jlboost(iris, target; nrounds = 2, max_leaves = 8, max_depth = 0)
-```
-
-```
-JLBoost.JLBoostTrees.JLBoostTreeModel(JLBoost.JLBoostTrees.AbstractJLBoostT
-ree[eta = 1.0 (tree weight)
-
-   -- PetalLength <= 1.9
-     ---- weight = 2.0
-
-   -- PetalLength > 1.9
-     ---- weight = -2.0
-, eta = 1.0 (tree weight)
-
-   -- PetalLength <= 1.9
-     ---- weight = 1.1353352832366148
-
-   -- PetalLength > 1.9
-     ---- weight = -1.135335283236615
-], JLBoost.LogitLogLoss(), :is_setosa)
-```
-
-
-
-
-it recommended that you set `max_depth = 0` to avoid a warning message.
-
-
-Convenience `predict` function is provided. It can be used to score a tree or a vector of trees
-```julia
-iris.pred1 = JLBoost.predict(xgtreemodel, iris);
-iris.pred2 = JLBoost.predict(xgtreemodel2, iris);
-iris.pred1_plus_2 = JLBoost.predict(vcat(xgtreemodel, xgtreemodel2), iris)
-
-first(iris.pred1_plus_2, 8)
-```
-
-```
-8-element Vector{Float64}:
- 5.135335283236616
- 5.135335283236616
- 5.135335283236613
- 5.135335283236613
- 5.135335283236616
- 5.135335283236616
- 5.135335283236613
- 5.135335283236616
-```
-
-
-
-
-
-Alternatively, you may use the fitted `JLBoostTreeModel` directly as a callable
-```julia
-iris.pred1 = xgtreemodel(iris);
-iris.pred2 = xgtreemodel2(iris);
-iris.pred1_plus_2 =vcat(xgtreemodel, xgtreemodel2)(iris)
-
-first(iris.pred1_plus_2, 8)
-```
-
-```
-8-element Vector{Float64}:
- 5.135335283236616
- 5.135335283236616
- 5.135335283236613
- 5.135335283236613
- 5.135335283236616
- 5.135335283236616
- 5.135335283236613
- 5.135335283236616
-```
-
-
-
-
-
-There are also convenience functions for computing the AUC and gini
-```julia
-AUC(-iris.pred1, iris.is_setosa)
-```
-
-```
-0.6666666666666667
-```
-
-
-
-```julia
-gini(-iris.pred1, iris.is_setosa)
-```
-
-```
-0.3333333333333335
-```
-
-
-
-
-
-As a convenience feature, you can adjust the `eta` weight of each tree by multiplying it by a factor e.g.
-
-```Julia
-new_tree = 0.3 * trees(xgtreemodel)[1] # weight the first tree by 30%
-unique(predict(new_tree, iris) ./ predict(trees(xgtreemodel)[1], iris)) # 0.3
-```
-
-#### Feature Importances
-One can obtain the feature importance using the `feature_importance` function
-
-```julia
-feature_importance(xgtreemodel2, iris)
-```
-
-```
-2×4 DataFrame
- Row │ feature      Quality_Gain  Coverage  Frequency
-     │ Symbol       Float64       Float64?  Float64?
-─────┼────────────────────────────────────────────────
-   1 │ PetalLength           1.0  0.857143   0.666667
-   2 │ SepalLength           0.0  0.142857   0.333333
-```
-
-
-
-
-
-#### Tables.jl integration
-
-Any Tables.jl compatible tabular data structure. So you can use any column accessible table with JLBoost. However, you are advised to define the following methods for `df` as the generic implementation in this package may not be efficient
-
-```julia
-nrow(df) # returns the number of rows
-ncol(df)
-view(df, rows, cols)
-```
-
-
-
-#### Regression Model
-By default `JLBoost.jl` defines it's own `LogitLogLoss` type for  binary classification problems. You may replace the `loss` function-type from the `LossFunctions.jl` `SupervisedLoss` type. E.g for regression models you can choose the leaast squares loss called `L2DistLoss()`
-
-```julia
-using DataFrames
-using JLBoost
-df = DataFrame(x = rand(100) * 100);
-
-df[!, :y] = 2*df.x .+ rand(100);
-
-target = :y;
-features = [:x];
-warm_start = fill(0.0, nrow(df));
-
-
-using LossFunctions: L2DistLoss;
-loss = L2DistLoss();
-jlboost(df, target, features, warm_start, loss; max_depth=2) # default max_depth = 6
-```
-
-```
-JLBoost.JLBoostTrees.JLBoostTreeModel(JLBoost.JLBoostTrees.AbstractJLBoostT
-ree[eta = 1.0 (tree weight)
-
-   -- x <= 49.74195181457017
-     -- x <= 24.452118674602087
-       ---- weight = -26.049474248872063
-
-     -- x > 24.452118674602087
-       ---- weight = -74.12637404016766
-
-   -- x > 49.74195181457017
-     -- x <= 73.14222600749159
-       ---- weight = -128.516681747273
-
-     -- x > 73.14222600749159
-       ---- weight = -171.31037299027867
-], LossFunctions.L2DistLoss(), :y)
-```
-
-
-
-
-
-### Save & Load models
-You save the models using the `JLBoost.save` and load it with the `load` function
-
-```julia
-JLBoost.save(xgtreemodel, "model.jlb");
-JLBoost.save(trees(xgtreemodel), "model_tree.jlb");
-```
-
-
-```julia
-JLBoost.load("model.jlb");
-JLBoost.load("model_tree.jlb");
-```
-
-
-
-
-### Fit model on `JDF.JDFFile` - enabling larger-than-RAM model fit
-Sometimes, you may want to fit a model on a dataset that is too large to fit into RAM. You can convert the dataset to [JDF format](https://github.com/xiaodaigh/JDF.jl) and then use `JDF.JDFFile` functionalities to fit the models. The interface `jlbosst` for `DataFrame` and `JDFFiLe` are the same.
-
-The key advantage of fitting a model using `JDF.JDFFile` is that not all the data need to be loaded into memory. This is because `JDF` can load the columns one at a time. Hence this will enable larger models to be trained on a single computer.
-
-```julia
-using JLBoost, RDatasets, JDF
-iris = dataset("datasets", "iris");
-
-iris[!, :is_setosa] = iris[!, :Species] .== "setosa";
-target = :is_setosa;
-
-features = setdiff(Symbol.(names(iris)), [:Species, :is_setosa]);
-
-savejdf("iris.jdf", iris);
-irisdisk = JDFFile("iris.jdf");
-
-# fit using on disk JDF format
-xgtree1 = jlboost(irisdisk, target, features);
-xgtree2 = jlboost(iris, target, features; nrounds = 2, max_depth = 2);
-
-# predict using on disk JDF format
-iris.pred1 = predict(xgtree1, irisdisk);
-iris.pred2 = predict(xgtree2, irisdisk);
-
-# AUC
-AUC(-predict(xgtree1, irisdisk), irisdisk[:, :is_setosa]);
-
-# gini
-gini(-predict(xgtree1, irisdisk), irisdisk[:, :is_setosa]);
-
-# clean up
-rm("iris.jdf", force=true, recursive=true);
-```
-
-
-
-
-### MLJ.jl
-
-Integration with MLJ.jl is available via the [JLBoostMLJ.jl](https://github.com/xiaodaigh/JLBoostMLJ.jl) package
-
-### Hackable
-
-## Notes
-
-Currently has a CPU implementation of the `xgboost` binary boosting algorithm as described in the original paper. I am trying to implement the algorithms in the original `xgboost` paper. I want to implement the algorithms mentioned in LigthGBM and Catboost and to port them to GPUs.
-
-There are two similar projects
+## Related packages
 
 * [EvoTrees.jl](https://github.com/Evovest/EvoTrees.jl)
 * [JuML.jl](https://github.com/Statfactory/JuML.jl)
+
+There is no MLJ interface in this fork. The old [`JLBoostMLJ.jl`](https://github.com/xiaodaigh/JLBoostMLJ.jl) wrapper is **archived** (last commit 2021) and depends on JLBoost 0.1, DataFrames 0.21, and MLJ 0.10–0.14, so it will not resolve against this package.
