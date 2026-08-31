@@ -31,4 +31,5 @@ julia --project=tutorial/lc-classification tutorial/lc-classification/jlboost_ro
 ```
 
 A typical result is a validation ROC well above the 1D `Lc_PT` baseline
-(AUC ~0.96 vs ~0.83). The overlay is written to `roc_jlboost_vs_lcpt.png`.
+(AUC ~0.96 vs ~0.83). The script writes the overlay to `roc_jlboost_vs_lcpt.png`
+(generated locally, not committed).
