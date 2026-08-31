@@ -4,7 +4,7 @@
 * Fix AbstractTrees 0.4 traits (type-based `StoredParents` / `IndexedChildren`) so `print_tree` works.
 * Set stump leaf scores to `-G/(H+λ)` when no split is found; subsample now actually trains on the sampled rows.
 * Support per-row observation `weights`: gradients and hessians are scaled by the weights.
-
+* Fix `predict` for trees deeper than one split (`.`&` bound tighter than `.||`, so left-leaf rows also received a right-subtree increment). Training margins now match XGBoost to ~10⁻⁸ (Float32) under matched exact-split logistic settings.
 # v0.1.12
 Minor bug fix for jlboost
 

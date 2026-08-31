@@ -66,6 +66,18 @@ using AbstractTrees
     end
 end
 
+@testset "deeper tree predict does not cancel left leaves" begin
+    # `.&` binds tighter than `.||`; without parens, left-leaf rows also received
+    # a right-subtree increment and summed to 0.
+    df = DataFrame(x = Float64[-2, -1, 0, 0.05, 0.07, 1, 2, 3],
+                   y = [0, 0, 1, 1, 0, 1, 1, 1])
+    m = jlboost(df, :y; nrounds = 1, max_depth = 3, min_child_weight = 0, eta = 1.0)
+    ŷ = predict(m, df)
+    @test all(abs.(ŷ) .> 1e-8)
+    @test ŷ[1] < 0
+    @test ŷ[end] > 0
+end
+
 @testset "stump leaf weight when no split" begin
     df = DataFrame(x = ones(8), y = ones(Int, 8))
     m = jlboost(df, :y; nrounds = 1, max_depth = 1, min_child_weight = 0)
