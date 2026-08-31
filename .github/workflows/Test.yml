@@ -1,0 +1,36 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    tags: ["*"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    uses: ./.github/workflows/ReusableTest.yml
+    with:
+      os: ${{ matrix.os }}
+      version: ${{ matrix.version }}
+      arch: ${{ matrix.arch }}
+      allow_failure: ${{ matrix.allow_failure }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "1.11"
+          - "1"
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        allow_failure: [false]
+        include:
+          - os: ubuntu-latest
+            arch: x64
+          - os: windows-latest
+            arch: x64
+          - os: macOS-latest
+            arch: aarch64
