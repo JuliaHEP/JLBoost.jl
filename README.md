@@ -1,6 +1,7 @@
 # JLBoost.jl
 
 [![Test](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml/badge.svg)](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml)
+![AI contribution](https://img.shields.io/badge/made_with_AI-human_in_charge-orange.svg)
 
 A 100%-Julia implementation of gradient boosting regression trees (GBRT / GBDT).
 
