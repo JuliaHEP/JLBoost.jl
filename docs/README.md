@@ -9,3 +9,4 @@ This folder holds longer tutorials. The plan is to build a [Quarto](https://quar
 | [Classification](classification.md) | Binary logistic fit, predict, AUC / gini, tree shrinkage, feature importance, leaf-wise growth |
 | [Out of core](out-of-core.md) | `jlboost` on a `JDF.JDFFile` so columns load one at a time |
 | [Give Me Some Credit](../tutorial/give-me-some-credit/) | Existing larger example (to be migrated into Quarto) |
+| [Λc classification](../tutorial/lc-classification/) | LHCb-like signal vs background; GBDT ROC vs a 1D `Lc_PT` cut |
