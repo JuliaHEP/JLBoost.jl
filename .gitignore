@@ -13,3 +13,4 @@ jlboost-dev/Project.toml
 jlboost-test/
 *.jdf/
 *.csv
+*.root

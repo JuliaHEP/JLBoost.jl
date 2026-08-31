@@ -115,6 +115,7 @@ Any column-accessible table works. For a custom type, define efficient `nrow`, `
 | [Classification](docs/classification.md) | Binary logistic example, AUC / gini, leaf-wise growth |
 | [Out of core](docs/out-of-core.md) | Fit from a `JDF.JDFFile` without loading every column |
 | [Give Me Some Credit](tutorial/give-me-some-credit/) | Larger example on disk |
+| [Λc classification](tutorial/lc-classification/) | LHCb-like signal vs background, ROC vs a 1D `Lc_PT` cut |
 
 ## Fork ahead
 
