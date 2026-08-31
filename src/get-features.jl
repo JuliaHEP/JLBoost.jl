@@ -8,12 +8,14 @@ Return all the features used in the tree
 """
 get_features(jlt::JLBoostTreeModel) = get_features(trees(jlt))
 
-get_features(jlt::JLBoostTree) = begin
-    d = get_features!(jlt::JLBoostTree, Dict{Symbol, Bool}())
+get_features(jlt::WeightedJLBoostTree) = get_features(jlt.tree)
+
+get_features(jlt::AbstractJLBoostTree) = begin
+    d = get_features!(jlt, Dict{Symbol, Bool}())
     keys(d) |> collect |> sort
 end
 
-get_features(jlt::AbstractVector{<:JLBoostTree}) = begin
+get_features(jlt::AbstractVector{<:AbstractJLBoostTree}) = begin
     d = get_features!(jlt[1])
     for jlt1 in @view(jlt[2:end])
         get_features!(jlt1, d)
@@ -21,8 +23,9 @@ get_features(jlt::AbstractVector{<:JLBoostTree}) = begin
     keys(d) |> collect |> sort
 end
 
-get_features!(jlt::JLBoostTree, d = Dict{Symbol, Bool}()) = begin
+get_features!(jlt::WeightedJLBoostTree, d = Dict{Symbol, Bool}()) = get_features!(jlt.tree, d)
 
+get_features!(jlt::AbstractJLBoostTree, d = Dict{Symbol, Bool}()) = begin
     if isequal(jlt.splitfeature, missing)
         return d
     else
@@ -35,3 +38,6 @@ get_features!(jlt::JLBoostTree, d = Dict{Symbol, Bool}()) = begin
 
     d
 end
+
+# exported as `features` from JLBoost.jl
+features(jlt) = get_features(jlt)

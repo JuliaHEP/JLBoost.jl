@@ -16,8 +16,9 @@ export LogitLogLoss, deriv, deriv2
 #   return -sum(y .* logsoftmax(logŷ) .* weight) * 1 // size(y, 2)
 # end
 
-import LossFunctions:  SupervisedLoss, deriv, deriv2
+import LossFunctions: SupervisedLoss, deriv, deriv2
 struct LogitLogLoss <: SupervisedLoss end
+const LogitLogloss = LogitLogLoss  # backwards-compatible alias for the export typo
 
 binarysoftmax(w) = 1/(1 + exp(-w))
 

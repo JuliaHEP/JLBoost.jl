@@ -1,52 +1,54 @@
-# This file implements the interface of AbstractTrees.jl
+# AbstractTrees.jl interface
 # https://juliacollections.github.io/AbstractTrees.jl/stable/#The-Abstract-Tree-Interface
 
-# AbstractTrees.children in children.jl
-# AbstractTrees.nodevalue AbstractTrees.nodevalue(AbstractJLBoostTree)
-
 import AbstractTrees
+using Tables: Tables
 
-using Tables: Tables;
+# Traits must be defined on the node *type*, not on instances.
+AbstractTrees.ParentLinks(::Type{<:AbstractJLBoostTree}) = AbstractTrees.StoredParents()
+AbstractTrees.SiblingLinks(::Type{<:AbstractJLBoostTree}) = AbstractTrees.ImplicitSiblings()
+AbstractTrees.ChildIndexing(::Type{<:AbstractJLBoostTree}) = AbstractTrees.IndexedChildren()
+AbstractTrees.NodeType(::Type{<:AbstractJLBoostTree}) = AbstractTrees.HasNodeType()
+AbstractTrees.nodetype(::Type{<:AbstractJLBoostTree}) = AbstractJLBoostTree
 
-# JLBoostTrees have parents stored
-AbstractTrees.ParentLinks(::AbstractJLBoostTree) = AbstractTrees.StoreParent()
+AbstractTrees.parent(jlt::AbstractJLBoostTree) = jlt.parent
+AbstractTrees.parent(jlt::WeightedJLBoostTree) = jlt.tree.parent
 
-AbstractTrees.SiblingLinks(::AbstractJLBoostTree) = AbstractTrees.ImplicitSiblings()
+AbstractTrees.children(jlt::WeightedJLBoostTree) = AbstractTrees.children(jlt.tree)
 
-AbstractTrees.ChildIndexing(::AbstractJLBoostTree) = AbstractTrees.IndedChildren()
+"""
+    FeatureSplitPredicate
 
-AbstractTrees.NodeType(::AbstractJLBoostTree) = AbstractTrees.HasNodeType()
-
-struct FeatureSplitPredictate
+Split decision: feature, threshold, and whether the left child is `x <= split_val`.
+"""
+struct FeatureSplitPredicate
     feature
     split_val
     inclusive::Bool
 end
 
-(f::FeatureSplitPredictate)(tbl) = begin
+(f::FeatureSplitPredicate)(tbl) = begin
     col = Tables.getcolumn(tbl, f.feature)
-    col .< f.split_val
+    f.inclusive ? (col .<= f.split_val) : (col .< f.split_val)
 end
 
-## return a predictate (function) that when applied to a Tables.jl table can return a vector of
-# indices for which children to choose. The indices for binary trees are usually `true` and `false`
-# for the left and right children respectively.
-AbstractTrees.nodevalue(jlt::AbstractJLBoostTree) = begin
-    #TODO "implement inclusive"
-    FeatureSplitPredictate(jlt.splitfeature, jlt.split, true)
+"""
+    AbstractTrees.nodevalue(jlt)
+
+Named tuple of this node's fields: `weight` on leaves; `splitfeature`, `split`,
+`gain`, and `weight` on split nodes.
+"""
+function AbstractTrees.nodevalue(jlt::AbstractJLBoostTree)
+    if isempty(jlt.children) || ismissing(jlt.splitfeature)
+        return (weight = jlt.weight,)
+    else
+        return (splitfeature = jlt.splitfeature,
+                split = jlt.split,
+                gain = jlt.gain,
+                weight = jlt.weight)
+    end
 end
 
-AbstractTrees.StableNode(::AbstractJLBoostTree) = NodeTypeUnknonw()
-
-AbstractTrees.ischild(jlt::AbstractJLBoostTree) = !isnothing(jlt.parent)
-AbstractTrees.isroot(jlt::AbstractJLBoostTree) = isnothing(jlt.parent)
-
-# NOT implemented interfaces include
-# * AbstractTrees.getdescendants
-# * AbstractTrees.nodevalues
-# * AbstractTrees.ischild
-# * AbstractTrees.isdescendent
-# * AbstractTrees.treebreadth
-# * AbstractTrees.treeheight
-# * AbstractTrees.desecendleft
-# * AbstractTrees.getroot
+function AbstractTrees.nodevalue(jlt::WeightedJLBoostTree)
+    merge((eta = jlt.eta,), AbstractTrees.nodevalue(jlt.tree))
+end

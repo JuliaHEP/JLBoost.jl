@@ -22,11 +22,23 @@ trees(jlt::JLBoostTreeModel) = jlt.jlt
 	v3
 end
 
+"""
+    JLBoostTree
+
+A binary regression-tree node.
+
+* `weight` — leaf score `-G / (H + λ)`; stored on every node, used at predict time only on leaves
+* `splitfeature` — feature used at this split
+* `split` — threshold; left child is `x <= split`
+* `gain` — split gain
+* `children` — `[left, right]`
+* `parent` — parent pointer (`StoredParents`)
+"""
 mutable struct JLBoostTree{T} <: AbstractJLBoostTree{T}
     weight
 	parent::Union{JLBoostTree, Nothing}
     children::AbstractVector{AbstractJLBoostTree} # this is deliberate kept as an vector of AbstractJLBoostTree; because we can genuinely mix and match types in htere
-    # TODO store the node value as FeatureSplitPredictate so you can generalise it to include missing
+    # TODO store the node value as FeatureSplitPredicate so you can generalise it to include missing
     splitfeature
     split
     gain
@@ -34,6 +46,12 @@ mutable struct JLBoostTree{T} <: AbstractJLBoostTree{T}
     JLBoostTree(args...; kwargs...) = new{nothing}(args...; kwargs...)
 end
 
+"""
+    WeightedJLBoostTree
+
+A tree with an `eta` shrinkage factor (learning rate). `eta` is kept as a
+wrapper so trees can be reweighted after fitting (`0.3 * tree`).
+"""
 mutable struct WeightedJLBoostTree{T} <: AbstractJLBoostTree{T}
 	tree::JLBoostTree
 	eta::Number

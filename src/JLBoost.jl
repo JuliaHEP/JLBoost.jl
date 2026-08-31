@@ -12,8 +12,8 @@ using LossFunctions: LogitMarginLoss, deriv, deriv2, SupervisedLoss
 
 export jlboost, find_best_split, _find_best_split, predict, fit_tree, logloss, jlboost!
 export JLBoostTree, show, *, print, println
-export LogitLogloss, deriv, deriv2, trees
-export JLBoostTreeModel, JLBoostTree, WeightedJLBoostTree, features, feature_importance, vcat
+export LogitLogLoss, LogitLogloss, deriv, deriv2, trees
+export JLBoostTreeModel, JLBoostTree, WeightedJLBoostTree, features, get_features, feature_importance, vcat
 export getproperty, AbstractJLBoostTree, predict
 export max_depth_stopping_criterion, max_leaves_stopping_criterion
 
