@@ -3,17 +3,7 @@ using Test
 using DataFrames
 using AbstractTrees
 
-# Field mapping vs XGBoost.jl `Node` (src/introspection.jl):
-#   JLBoost `weight`          <-> XGBoost `leaf`
-#   JLBoost `splitfeature`    <-> XGBoost `split`
-#   JLBoost `split`           <-> XGBoost `split_condition`
-#   JLBoost `gain`            <-> XGBoost `gain`
-#   JLBoost `children[1]`     <-> XGBoost `yes` (left)
-#   JLBoost `children[2]`     <-> XGBoost `no`  (right)
-#   JLBoost missings go left  <-> XGBoost `nmissing` (explicit child id)
-# Left predicate: JLBoost `x <= split`; XGBoost `x < split_condition`
-
-@testset "tree structure vs XGBoost.Node" begin
+@testset "tree structure" begin
     df = DataFrame(x = Float64[1, 1, 1, 1, 0, 0, 0, 0],
                    y = [1, 1, 1, 1, 0, 0, 0, 0])
     m = jlboost(df, :y; nrounds = 1, max_depth = 1, min_child_weight = 0, eta = 1.0)
@@ -51,16 +41,16 @@ using AbstractTrees
         @test !AbstractTrees.isroot(left)
 
         nv = AbstractTrees.nodevalue(left)
-        @test haskey(nv, :leaf)
-        @test nv.leaf == left.weight
+        @test haskey(nv, :weight)
+        @test nv.weight == left.weight
 
         nv_split = AbstractTrees.nodevalue(node)
-        @test nv_split.split === :x
-        @test nv_split.split_condition == node.split
+        @test nv_split.splitfeature === :x
+        @test nv_split.split == node.split
         @test nv_split.gain == node.gain
 
         printed = sprint(print_tree, node)
-        @test occursin("split", printed) || occursin("leaf", printed)
+        @test occursin("splitfeature", printed) || occursin("weight", printed)
     end
 
     @testset "get_features" begin

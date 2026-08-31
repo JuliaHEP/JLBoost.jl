@@ -13,24 +13,20 @@ using ..JLBoostTrees: JLBoostTree
 
 Fit a tree boosting model with a DataFrame, df, and target symbol and allowed features.
 
-This is based on the xgboost interface, where possible the parameters have the same name as xgboost,
-see https://xgboost.readthedocs.io/en/latest/parameter.html
-
 * nrounds: Number of trees to fit
 * warmstart: A vector of scores from which to start training. Defaults to 0. The warmstart may be
     different for every row. This is designed to allow the model to improve upon existing models.
-    (XGBoost's analogue is `base_margin`.)
 * eta: The learning rate. Also known as the weight of each tree in the final summation of trees.
-    XGBoost bakes `eta` into leaf values; JLBoost stores it on `WeightedJLBoostTree`.
-* lambda: XGBoost lambda hyperparameter
-* gamma: XGBoost gamma hyperparameter
+    Stored on `WeightedJLBoostTree` so trees can be reweighted after fitting.
+* lambda: L2 regularization on leaf scores
+* gamma: Minimum loss reduction required to make a split
 * max_depth: the maximum depth of each tree
 * subsample: 0-1, the proportion of rows to subsample for each tree build
 * verbose: Print more information
 * colsample_bytree: (0-1] The proportion of feature column to sample for each tree.
-* min_child_weight: The weight that needs to be in each child node before a split can occur. The
-    weight is the hessian (2nd derivative) of the loss function, which happens to be 1 for squares
-    loss. Same meaning as XGBoost `min_child_weight`.
+* min_child_weight: Minimum sum of hessians in a child node before a split can occur. The
+    hessian is the 2nd derivative of the loss function, which happens to be 1 for squares
+    loss.
 * colsample_bylevel: Not yet implemented
 * colsample_bynode: Not yet implemented
 * monotone_contraints: Not yet implemented

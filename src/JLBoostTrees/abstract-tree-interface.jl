@@ -1,8 +1,5 @@
 # AbstractTrees.jl interface
 # https://juliacollections.github.io/AbstractTrees.jl/stable/#The-Abstract-Tree-Interface
-#
-# Mirrors XGBoost.jl's `Node` in src/introspection.jl: children, node type, and
-# print_tree. JLBoost additionally stores parent pointers (`StoredParents`).
 
 import AbstractTrees
 using Tables: Tables
@@ -22,8 +19,7 @@ AbstractTrees.children(jlt::WeightedJLBoostTree) = AbstractTrees.children(jlt.tr
 """
     FeatureSplitPredicate
 
-Value stored on split nodes: the feature, threshold, and whether the left child
-is `x <= split_val` (XGBoost's JSON dump uses strict `<` as `split_condition`).
+Split decision: feature, threshold, and whether the left child is `x <= split_val`.
 """
 struct FeatureSplitPredicate
     feature
@@ -39,15 +35,15 @@ end
 """
     AbstractTrees.nodevalue(jlt)
 
-For leaves, the value is named `leaf` to match XGBoost's dump field. For split
-nodes, `split` / `split_condition` / `gain` match `XGBoost.Node`.
+Named tuple of this node's fields: `weight` on leaves; `splitfeature`, `split`,
+`gain`, and `weight` on split nodes.
 """
 function AbstractTrees.nodevalue(jlt::AbstractJLBoostTree)
     if isempty(jlt.children) || ismissing(jlt.splitfeature)
-        return (leaf = jlt.weight,)
+        return (weight = jlt.weight,)
     else
-        return (split = jlt.splitfeature,
-                split_condition = jlt.split,
+        return (splitfeature = jlt.splitfeature,
+                split = jlt.split,
                 gain = jlt.gain,
                 weight = jlt.weight)
     end
