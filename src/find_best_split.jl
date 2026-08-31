@@ -1,7 +1,7 @@
 #using CuArrays
 using Statistics: mean
 using Tables
-using CategoricalArrays
+using CategoricalArrays: CategoricalArray, CategoricalVector, levels, levelcode
 using MappedArrays: mappedarray
 
 export find_best_split
@@ -67,7 +67,7 @@ end
 function _find_best_split(loss::LogitLogLoss, feature::AbstractVector, target::SubArray{A, B, C, D, E}, warmstart::AbstractVector, lambda::Number, gamma::Number; kwargs...) where {A, B, C<:CategoricalArray, D, E}
 	@assert length(levels(target)) == 2
 
-	find_best_split(loss, feature, mappedarray(x->2 - x.level, target), warmstart, lambda, gamma; kwargs...)
+	find_best_split(loss, feature, mappedarray(x -> 2 - levelcode(x), target), warmstart, lambda, gamma; kwargs...)
 end
 
 

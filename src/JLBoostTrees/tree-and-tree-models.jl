@@ -22,11 +22,28 @@ trees(jlt::JLBoostTreeModel) = jlt.jlt
 	v3
 end
 
+"""
+    JLBoostTree
+
+A binary regression-tree node. Field names map to `XGBoost.Node` as follows:
+
+| JLBoostTree       | XGBoost.Node     | Role |
+| ----------------- | ---------------- | ---- |
+| `weight`          | `leaf`           | leaf score `-G / (H + λ)`; stored on every node, used at predict time only on leaves |
+| `splitfeature`    | `split`          | feature used at this split |
+| `split`           | `split_condition`| threshold; left child is `x <= split` (XGBoost uses `x < split_condition`) |
+| `gain`            | `gain`           | split gain |
+| `children`        | `children`       | `[left, right]`; XGBoost also stores child ids as `yes` / `no` |
+| `parent`          | (none)           | parent pointer (`StoredParents`) |
+| (none)            | `cover`          | sum of hessians; JLBoost reports this via `feature_importance` Coverage |
+| (none)            | `nmissing`       | missing-value child; JLBoost currently sends missings left |
+| (none)            | `id`, `depth`    | XGBoost stores these; JLBoost computes depth with `treedepth` |
+"""
 mutable struct JLBoostTree{T} <: AbstractJLBoostTree{T}
     weight
 	parent::Union{JLBoostTree, Nothing}
     children::AbstractVector{AbstractJLBoostTree} # this is deliberate kept as an vector of AbstractJLBoostTree; because we can genuinely mix and match types in htere
-    # TODO store the node value as FeatureSplitPredictate so you can generalise it to include missing
+    # TODO store the node value as FeatureSplitPredicate so you can generalise it to include missing
     splitfeature
     split
     gain
@@ -34,6 +51,13 @@ mutable struct JLBoostTree{T} <: AbstractJLBoostTree{T}
     JLBoostTree(args...; kwargs...) = new{nothing}(args...; kwargs...)
 end
 
+"""
+    WeightedJLBoostTree
+
+A tree with an `eta` shrinkage factor (XGBoost `eta` / `learning_rate`).
+XGBoost bakes `eta` into each `leaf` at training time; JLBoost keeps it as a
+wrapper so trees can be reweighted after fitting (`0.3 * tree`).
+"""
 mutable struct WeightedJLBoostTree{T} <: AbstractJLBoostTree{T}
 	tree::JLBoostTree
 	eta::Number

@@ -1,52 +1,58 @@
-# This file implements the interface of AbstractTrees.jl
+# AbstractTrees.jl interface
 # https://juliacollections.github.io/AbstractTrees.jl/stable/#The-Abstract-Tree-Interface
-
-# AbstractTrees.children in children.jl
-# AbstractTrees.nodevalue AbstractTrees.nodevalue(AbstractJLBoostTree)
+#
+# Mirrors XGBoost.jl's `Node` in src/introspection.jl: children, node type, and
+# print_tree. JLBoost additionally stores parent pointers (`StoredParents`).
 
 import AbstractTrees
+using Tables: Tables
 
-using Tables: Tables;
+# Traits must be defined on the node *type*, not on instances.
+AbstractTrees.ParentLinks(::Type{<:AbstractJLBoostTree}) = AbstractTrees.StoredParents()
+AbstractTrees.SiblingLinks(::Type{<:AbstractJLBoostTree}) = AbstractTrees.ImplicitSiblings()
+AbstractTrees.ChildIndexing(::Type{<:AbstractJLBoostTree}) = AbstractTrees.IndexedChildren()
+AbstractTrees.NodeType(::Type{<:AbstractJLBoostTree}) = AbstractTrees.HasNodeType()
+AbstractTrees.nodetype(::Type{<:AbstractJLBoostTree}) = AbstractJLBoostTree
 
-# JLBoostTrees have parents stored
-AbstractTrees.ParentLinks(::AbstractJLBoostTree) = AbstractTrees.StoreParent()
+AbstractTrees.parent(jlt::AbstractJLBoostTree) = jlt.parent
+AbstractTrees.parent(jlt::WeightedJLBoostTree) = jlt.tree.parent
 
-AbstractTrees.SiblingLinks(::AbstractJLBoostTree) = AbstractTrees.ImplicitSiblings()
+AbstractTrees.children(jlt::WeightedJLBoostTree) = AbstractTrees.children(jlt.tree)
 
-AbstractTrees.ChildIndexing(::AbstractJLBoostTree) = AbstractTrees.IndedChildren()
+"""
+    FeatureSplitPredicate
 
-AbstractTrees.NodeType(::AbstractJLBoostTree) = AbstractTrees.HasNodeType()
-
-struct FeatureSplitPredictate
+Value stored on split nodes: the feature, threshold, and whether the left child
+is `x <= split_val` (XGBoost's JSON dump uses strict `<` as `split_condition`).
+"""
+struct FeatureSplitPredicate
     feature
     split_val
     inclusive::Bool
 end
 
-(f::FeatureSplitPredictate)(tbl) = begin
+(f::FeatureSplitPredicate)(tbl) = begin
     col = Tables.getcolumn(tbl, f.feature)
-    col .< f.split_val
+    f.inclusive ? (col .<= f.split_val) : (col .< f.split_val)
 end
 
-## return a predictate (function) that when applied to a Tables.jl table can return a vector of
-# indices for which children to choose. The indices for binary trees are usually `true` and `false`
-# for the left and right children respectively.
-AbstractTrees.nodevalue(jlt::AbstractJLBoostTree) = begin
-    #TODO "implement inclusive"
-    FeatureSplitPredictate(jlt.splitfeature, jlt.split, true)
+"""
+    AbstractTrees.nodevalue(jlt)
+
+For leaves, the value is named `leaf` to match XGBoost's dump field. For split
+nodes, `split` / `split_condition` / `gain` match `XGBoost.Node`.
+"""
+function AbstractTrees.nodevalue(jlt::AbstractJLBoostTree)
+    if isempty(jlt.children) || ismissing(jlt.splitfeature)
+        return (leaf = jlt.weight,)
+    else
+        return (split = jlt.splitfeature,
+                split_condition = jlt.split,
+                gain = jlt.gain,
+                weight = jlt.weight)
+    end
 end
 
-AbstractTrees.StableNode(::AbstractJLBoostTree) = NodeTypeUnknonw()
-
-AbstractTrees.ischild(jlt::AbstractJLBoostTree) = !isnothing(jlt.parent)
-AbstractTrees.isroot(jlt::AbstractJLBoostTree) = isnothing(jlt.parent)
-
-# NOT implemented interfaces include
-# * AbstractTrees.getdescendants
-# * AbstractTrees.nodevalues
-# * AbstractTrees.ischild
-# * AbstractTrees.isdescendent
-# * AbstractTrees.treebreadth
-# * AbstractTrees.treeheight
-# * AbstractTrees.desecendleft
-# * AbstractTrees.getroot
+function AbstractTrees.nodevalue(jlt::WeightedJLBoostTree)
+    merge((eta = jlt.eta,), AbstractTrees.nodevalue(jlt.tree))
+end

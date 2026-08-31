@@ -1,3 +1,9 @@
+# v0.2.0
+* Require Julia 1.10+ so the package runs on current LTS and Julia 1.11.
+* Allow LossFunctions 1.x and CategoricalArrays 1.x; fill in missing `[compat]` entries (`Statistics`, `Serialization`).
+* Fix AbstractTrees 0.4 traits (type-based `StoredParents` / `IndexedChildren`) so `print_tree` works; node values use XGBoost dump names (`leaf`, `split`, `split_condition`).
+* Set stump leaf scores to `-G/(H+λ)` when no split is found; subsample now actually trains on the sampled rows.
+
 # v0.1.12
 Minor bug fix for jlboost
 

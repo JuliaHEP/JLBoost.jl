@@ -41,16 +41,16 @@ Parameters:
 * features
     The iterable of features name. The type of the elements should be Symbol or String
 * warm_start
-    A vector weight to serve as starting weights
+    A vector of scores to serve as starting predictions (XGBoost `base_margin`)
 * jlt
     The JLBoost tree to update
 * stopping_criterion: Function
 * tree_growth: Function
     A function to control where to grow the tree
 * lambda = 0
-    The L1 Norm regulization constnat
+    The L2 Norm regularization constant (XGBoost `lambda`)
 * gamma = 0
-    The L2 Norm regulization constnat
+    The minimum loss reduction to split (XGBoost `gamma`)
 * colsample_bynode = 1 (NOT IMPLEMENTED YET)
     What proportion of features to sample for each node
 * colsample_bylevel = 1 (NOT IMPLEMENTED YET)
@@ -75,6 +75,13 @@ function _fit_tree!(loss, tbl, target, features, warm_start,
         @warn "{target} is in features; removing from features"
         features = setdiff(features, [target])
     end
+
+    # XGBoost leaf score: -G / (H + λ)
+    target_vec = getproperty(Tables.columns(tbl), Symbol(target))
+    gs = g.(loss, target_vec, warm_start)
+    hs = h.(loss, target_vec, warm_start)
+    H = sum(hs)
+    jlt.weight = -sum(gs) / (H + lambda)
 
     if verbose
         @info "`_fit_tree!`: Current state of tree $jlt"

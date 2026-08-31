@@ -1,11 +1,7 @@
-export nodetype, parentlinks
+# Trait helpers. Canonical AbstractTrees 0.4 traits are in
+# abstract-tree-interface.jl (defined on types, not instances).
 
-import AbstractTrees: nodetype, ParentLinks, StoredSiblings
+export parentlinks
 
-function nodetype(::T) where {T <: AbstractJLBoostTree}
-    T
-end
-
-function parentlinks(::T) where {T <: AbstractJLBoostTree}
-    AbstractTrees.StoredParents()
-end
+parentlinks(::Type{<:AbstractJLBoostTree}) = AbstractTrees.StoredParents()
+parentlinks(::AbstractJLBoostTree) = AbstractTrees.StoredParents()
