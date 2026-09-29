@@ -1,3 +1,6 @@
+# Unreleased
+* Fix the LossFunctions derivative argument order for regression losses, including `L2DistLoss`, while preserving the built-in logistic derivative API.
+
 # v0.2.0
 * Require Julia 1.10+ so the package runs on current LTS and Julia 1.11.
 * Allow LossFunctions 1.x and CategoricalArrays 1.x; fill in missing `[compat]` entries (`Statistics`, `Serialization`).

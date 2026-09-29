@@ -31,13 +31,14 @@ deriv(::LogitLogLoss, y::Number, w::Number) = -binarysoftmax(-w) - y + 1
 # https://www.wolframalpha.com/input/?i=f%28w%29+%3D+-%28e%5Ew+%28-1+%2B+y%29+%2B+y%29%2F%281+%2B+e%5Ew%29%2C+df%2Fdw
 deriv2(::LogitLogLoss, y::Number, w::Number) = exp(w)*(binarysoftmax(-w)^2)
 
-g(loss::SupervisedLoss, y, warmstart) = begin
-	deriv(loss, y, warmstart)
-end
+# LossFunctions differentiates with respect to its first numeric argument:
+# deriv(loss, prediction, target), likewise for deriv2.
+g(loss::SupervisedLoss, y, warmstart) = deriv(loss, warmstart, y)
+h(loss::SupervisedLoss, y, warmstart) = deriv2(loss, warmstart, y)
 
-h(loss::SupervisedLoss, y, warmstart) = begin
-	deriv2(loss, y, warmstart)
-end
+# Preserve LogitLogLoss's existing target-first derivative API.
+g(loss::LogitLogLoss, y, warmstart) = deriv(loss, y, warmstart)
+h(loss::LogitLogLoss, y, warmstart) = deriv2(loss, y, warmstart)
 
 
 # begin: Zygote.jl
