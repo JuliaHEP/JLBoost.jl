@@ -1,5 +1,11 @@
 # JLBoost.jl
 
+> **Maintenance notice:** This JuliaHEP fork is being retired and will be archived. Use [EvoTrees.jl](https://github.com/Evovest/EvoTrees.jl) for new work. This repository and its tutorials remain available as reference material; further development is not planned.
+
+The [comparison in issue #8](https://github.com/JuliaHEP/JLBoost.jl/issues/8#issuecomment-5893724328) found matching controlled logistic calculations, broader EvoTrees functionality, and substantially faster EvoTrees training in the measured workloads. The [report, scripts, and raw results](https://gist.github.com/mmikhasenko/629330abe411d4b52117a3d6f8fb541a) preserve the evidence and reproduction instructions. JLBoost's exact split search and explicit, easily reweighted trees remain useful for study, but do not justify maintaining a separate general-purpose boosting library for this fork's needs.
+
+The LossFunctions derivative-order bug was fixed in [PR #9](https://github.com/JuliaHEP/JLBoost.jl/pull/9). The warm-start, child-threshold, and weight-validation findings in issue #8 remain unresolved. EvoTrees is not a drop-in replacement: consult the comparison for differences in prediction scales, defaults, depth, regularization, and weight handling.
+
 [![Test](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml/badge.svg)](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml)
 ![AI contribution](https://img.shields.io/badge/made_with_AI-human_in_charge-orange.svg)
 
@@ -7,7 +13,7 @@ A 100%-Julia implementation of gradient boosting regression trees (GBRT / GBDT).
 
 This is the [JuliaHEP](https://github.com/JuliaHEP/JLBoost.jl) fork of [`xiaodaigh/JLBoost.jl`](https://github.com/xiaodaigh/JLBoost.jl). It requires **Julia 1.10+**.
 
-Longer tutorials live in [`docs/`](docs/). A [Quarto](https://quarto.org) documentation site from that folder is planned.
+The remaining usage examples and longer tutorials in [`docs/`](docs/) are retained for reference.
 
 ## Install
 
@@ -111,13 +117,13 @@ Any column-accessible table works. For a custom type, define efficient `nrow`, `
 
 | | |
 | --- | --- |
-| [docs/](docs/) | Tutorials (Quarto site planned) |
+| [docs/](docs/) | Reference tutorials |
 | [Classification](docs/classification.md) | Binary logistic example, AUC / gini, leaf-wise growth |
 | [Out of core](docs/out-of-core.md) | Fit from a `JDF.JDFFile` without loading every column |
 | [Give Me Some Credit](tutorial/give-me-some-credit/) | Larger example on disk |
 | [Λc classification](tutorial/lc-classification/) | LHCb-like signal vs background, ROC vs a 1D `Lc_PT` cut |
 
-## Fork ahead
+## Changes made in this fork
 
 * Julia 1.10+ (tested on 1.10, 1.11, and latest 1.x).
 * Per-row observation `weights`: `jlboost(df, target; weights = w)` (XGBoost `DMatrix` `weight`).
