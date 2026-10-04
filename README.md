@@ -4,8 +4,6 @@
 
 The [comparison in issue #8](https://github.com/JuliaHEP/JLBoost.jl/issues/8#issuecomment-5893724328) found matching controlled logistic calculations, broader EvoTrees functionality, and substantially faster EvoTrees training in the measured workloads. The [report, scripts, and raw results](https://gist.github.com/mmikhasenko/629330abe411d4b52117a3d6f8fb541a) preserve the evidence and reproduction instructions. JLBoost's exact split search and explicit, easily reweighted trees remain useful for study, but do not justify maintaining a separate general-purpose boosting library for this fork's needs.
 
-The LossFunctions derivative-order bug was fixed in [PR #9](https://github.com/JuliaHEP/JLBoost.jl/pull/9). The warm-start, child-threshold, and weight-validation findings in issue #8 remain unresolved. EvoTrees is not a drop-in replacement: consult the comparison for differences in prediction scales, defaults, depth, regularization, and weight handling.
-
 [![Test](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml/badge.svg)](https://github.com/JuliaHEP/JLBoost.jl/actions/workflows/Test.yml)
 ![AI contribution](https://img.shields.io/badge/made_with_AI-human_in_charge-orange.svg)
 
