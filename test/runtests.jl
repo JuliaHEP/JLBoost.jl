@@ -18,3 +18,5 @@ include("test-weights.jl")
 include("test-xgboost-accuracy.jl")
 
 include("test-loss-derivatives.jl")
+
+include("test-warm-start.jl")

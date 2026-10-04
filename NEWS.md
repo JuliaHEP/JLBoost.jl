@@ -1,4 +1,5 @@
 # Unreleased
+* Retain nonzero warm-start scores in every boosting round, including row-subsampled training. Predictions remain the learned correction to the external baseline.
 * Fix the LossFunctions derivative argument order for regression losses, including `L2DistLoss`, while preserving the built-in logistic derivative API.
 
 # v0.2.0

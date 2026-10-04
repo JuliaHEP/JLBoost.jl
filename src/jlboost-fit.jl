@@ -15,7 +15,8 @@ Fit a tree boosting model with a DataFrame, df, and target symbol and allowed fe
 
 * nrounds: Number of trees to fit
 * warmstart: A vector of scores from which to start training. Defaults to 0. The warmstart may be
-    different for every row. This is designed to allow the model to improve upon existing models.
+    different for every row and is included in every boosting round. Returned predictions contain
+    only the learned correction; add the baseline scores when predicting with the full model.
 * eta: The learning rate. Also known as the weight of each tree in the final summation of trees.
     Stored on `WeightedJLBoostTree` so trees can be reweighted after fitting.
 * lambda: L2 regularization on leaf scores
@@ -132,14 +133,14 @@ function jlboost(df, target, features, warm_start::AbstractVector,
         idx = row_sampling_strategy(nrow(dfc))
         if idx == 1:nrow(dfc)
             dfs = dfc
-            ws = nround == 1 ? warm_start : predict(res_jlt[1:nround-1], dfc)
+            ws = nround == 1 ? warm_start : warm_start .+ predict(res_jlt[1:nround-1], dfc)
             wts = weights
         else
             dfs = dfc[idx, :]
             if nround == 1
                 ws = warm_start[idx]
             else
-                ws = predict(res_jlt[1:nround-1], dfs)
+                ws = warm_start[idx] .+ predict(res_jlt[1:nround-1], dfs)
             end
             wts = weights === nothing ? nothing : weights[idx]
         end
